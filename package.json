@@ -1,6 +1,6 @@
 {
   "name": "e2edce",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "end-to-end dce",
   "type": "module",
   "bin": {
