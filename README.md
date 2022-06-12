@@ -1,6 +1,8 @@
 # About
 Deadcode elimination via running end-to-end tests.
 
+ex. [DCE a threejs app](https://github.com/ycw/e2edce-sample-project)
+
 
 
 # Install
@@ -31,6 +33,7 @@ This will output two files:
    2. index.build.js.gz (gzip)
 
 And, a report will print to stdout. 
+
 
 
 # Configuration File
@@ -75,4 +78,3 @@ export default {
   },
 }
 ```
-
