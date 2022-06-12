@@ -75,6 +75,7 @@ const config = Object.assign({
 
 let code
 let size_rollup
+let size_dce
 
 
 
@@ -207,7 +208,7 @@ code = await (async () => {
         : functionName
 
       const fn_body = config.dbg_mode
-        ? `console.error("fn body is removed; (most likely your e2e tests doesn't cover)");`
+        ? `console.error("fn body is removed");`
         : ''
 
       if (fn_str.startsWith('function')) {
@@ -234,6 +235,8 @@ code = await (async () => {
 
 // (debug only)
 // fs.writeFileSync('index.build_dbg.js', code)
+
+size_dce = code.length
 
 console.groupEnd()
 
@@ -290,11 +293,12 @@ fs.writeFileSync(config.output, code)
 // ---
 
 console.log()
-console.group('Create build')
+console.group('Creates build')
 console.log({
   compress: config.compress,
   mangle: config.mangle,
-  minified: config.minified
+  minified: config.minified,
+  output: config.output
 })
 console.groupEnd()
 
@@ -330,7 +334,8 @@ fs.writeFileSync(config.output, code)
 // ---
 
 console.log()
-console.group('Create gzip build')
+console.group('Creates gzip build')
+console.log({ output: config.output + '.gz' })
 
 {
   const gz = zlib.createGzip()
@@ -361,20 +366,25 @@ console.group('Generates report')
   const gzip = fs.statSync(config.output + '.gz').size
 
   const sz = (b) => {
+    let size
+
     if (b < 1024) {
-      return b + 'b'
+      size = b + 'b'
     } else if (b < 1024 ** 2) {
-      return Math.round(b / 1024) + 'Kb'
+      size = Math.round(b / 1024) + 'Kb'
     } else {
-      return Math.round(b / 1024 / 1024) + 'Mb'
+      size = Math.round(b / 1024 / 1024) + 'Mb'
     }
+
+    return { size }
   }
 
   console.table({
-    entry: { sz: sz(entry) },
-    rollup: { sz: sz(size_rollup) },
-    build: { sz: sz(build) },
-    gzip: { sz: sz(gzip) }
+    entry: sz(entry),
+    rollup: sz(size_rollup),
+    dce: sz(size_dce),
+    build: sz(build),
+    gzip: sz(gzip)
   })
 }
 
