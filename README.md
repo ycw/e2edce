@@ -47,8 +47,8 @@ export default {
   test: 'e2e/test.js', // test file
 
   // --- optional ---
-  compress: true, // compress?
-  mangle: true, // mangle symbol?
+  compress: true, // compress? (bool | object)
+  mangle: true, // mangle symbol? (bool | object)
   minify: true, // trim whitespaces?
   headless: true, // test headlessly?
   port: 8081, // dev server port
@@ -57,7 +57,7 @@ export default {
 ```
 
 - `compress` is https://github.com/terser/terser#compress-options
-- `mangle` is https://github.com/terser/terser#compress-options
+- `mangle` is https://github.com/terser/terser#mangle-options
 
 
 ---
