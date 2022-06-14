@@ -42,7 +42,7 @@ export default async (test, headless) => {
   for (const { functionName, ranges } of uncov_fns) {
     for (const { startOffset, endOffset, count } of ranges) {
 
-      if (count !== 0) {
+      if (count > 0) {
         continue
       }
 
@@ -51,12 +51,31 @@ export default async (test, headless) => {
 
       const fn_source = source?.substring(startOffset, endOffset)
       const fn_name = (
-        /[^0-9a-zA-Z$_]/.test(functionName) 
+        /[^0-9a-zA-Z$_]/.test(functionName)
         || !functionName
       ) ? '_e2edce_' + (stub_fn_idx++)
         : functionName
 
-      new_source.push(`${fn_name}()${fn_block}`)
+      if (fn_source.startsWith('function')) {
+        new_source.push(`function ${fn_name}()${fn_block}`)
+      } else if (fn_source.startsWith('async function')) { // async f and gf
+        new_source.push(`async function ${fn_name}()${fn_block}`)
+      } else if (fn_source.startsWith('async *')) { // async gf (method)
+        new_source.push(`async *${fn_name}()${fn_block}`)
+      } else if (fn_source.startsWith('*')) { // gf (method)
+        new_source.push(`*${fn_name}()${fn_block}`)
+      } else if (fn_source.startsWith('constructor')) { // class ctor
+        new_source.push(`constructor()${fn_block}`)
+      } else if (fn_source.startsWith('set ')) { // setter
+        new_source.push(`${fn_name}(v)${fn_block}`)
+      } else if ( // arrow fn 
+        fn_source.startsWith('(') // `(a)=>{}`
+        || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source) // `a=>{}`
+      ) { 
+        new_source.push(`()=>${fn_block}`)
+      } else { // method
+        new_source.push(`${fn_name}()${fn_block}`)
+      }
     }
   }
 
