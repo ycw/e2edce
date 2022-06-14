@@ -29,9 +29,7 @@ export default async (test, headless) => {
   }
 
   const entry = entries[0]
-  const uncov_fns = entry.functions.filter(
-    f => f.functionName && !f.isBlockCoverage
-  )
+  const uncov_fns = entry.functions.filter(f => !f.isBlockCoverage)
 
   const source = entry.source
   const tag = '@e2edce'
@@ -42,28 +40,23 @@ export default async (test, headless) => {
   let stub_fn_idx = 0
 
   for (const { functionName, ranges } of uncov_fns) {
-    for (const { startOffset, endOffset } of ranges) {
+    for (const { startOffset, endOffset, count } of ranges) {
+
+      if (count !== 0) {
+        continue
+      }
+
       new_source.push(source.substring(at, startOffset))
       at = endOffset
 
       const fn_source = source?.substring(startOffset, endOffset)
-      const fn_name = /[^0-9a-zA-Z$_]/.test(functionName)
-        ? '_e2edce_' + (stub_fn_idx++)
+      const fn_name = (
+        /[^0-9a-zA-Z$_]/.test(functionName) 
+        || !functionName
+      ) ? '_e2edce_' + (stub_fn_idx++)
         : functionName
 
-      if (fn_source.startsWith('function')) {
-        new_source.push(`function ${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('async function')) {
-        new_source.push(`async function ${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('constructor')) { // class ctor
-        new_source.push(`constructor()${fn_block}`)
-      } else if (fn_source.startsWith('set ')) { // setter
-        new_source.push(`${fn_name}(v)${fn_block}`)
-      } else if (fn_source.startsWith('(')) { // arrow fn
-        new_source.push(`()=>${fn_block}`)
-      } else {
-        new_source.push(`${fn_name}()${fn_block}`)
-      }
+      new_source.push(`${fn_name}()${fn_block}`)
     }
   }
 
