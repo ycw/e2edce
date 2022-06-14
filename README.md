@@ -1,4 +1,5 @@
 # About
+
 Deadcode elimination via running end-to-end tests.
 
 ex. [DCE a threejs app](https://github.com/ycw/e2edce-sample-project)
@@ -13,9 +14,9 @@ ex. [DCE a threejs app](https://github.com/ycw/e2edce-sample-project)
 
 # Usage
 
-First, create a [configuration file](#configuration-file)
+First, create a [configuration file](#configuration-file) in project root
 
-Then, config your project's package.json
+Then, config package.json
 
 ```json
 { 
@@ -25,56 +26,49 @@ Then, config your project's package.json
 }
 ```
 
-Finally, run `npm run build`
+Finally, run `npm run build` to build
 
-This will output two files:
-
-   1. index.build.js (min)
-   2. index.build.js.gz (gzip)
-
-And, a report will print to stdout. 
+- index.build.js (min)
+- index.build.js.gz (min + gzipped)
 
 
 
 # Configuration File
 
-e2edce.config.js
+Configuration file sample 
+
+`e2edce.config.js`
 
 ```js
 export default {
+  // --- required ---
+  input: 'src/index.js', // entry
+  output: 'index.build.js', // output
+  test: 'e2e/test.js', // test file
 
-  // [REQUIRED] Input/output file; relative to cwd
-  input: 'src/index.js',
-  output: 'index.build.js',
-
-  // Transformation
-  compress: true, 
-  mangle: true,
-  minified: true, // trim wsp or not
-
-  // What kind of fn to be elim.?
-  elim_uncov_class_method: false,
-  elim_uncov_prop_method: true,
-  elim_uncov_prop_fn_expr: true,
-  
-  // Debug? yes -> inserts `console.error()` in uncov fns' body  
-  dbg_mode: false,
-
-  // Dev server port
-  port: 8080,
-
-  // Are e2e tests running in a headless browser
-  headless: true,
-
-  // [REQUIRED] coverage  
-  async cov(page) {
-    // page = https://playwright.dev/docs/api/class-page
-    await page.goto(
-      'http://localhost:8080/', 
-      { waitUntil: 'networkidle' }
-    )
-
-    // ... add other actions here ...
-  },
+  // --- optional ---
+  compress: true, // compress?
+  mangle: true, // mangle symbol?
+  minify: true, // trim whitespaces?
+  headless: true, // test headlessly?
+  port: 8081, // dev server port
+  debug: false // (this flag is yet impl)
 }
 ```
+
+- `compress` is https://github.com/terser/terser#compress-options
+- `mangle` is https://github.com/terser/terser#compress-options
+
+
+---
+E2e test file sample
+
+`e2e/test.js`
+
+```js
+export default async (page) => {
+  await page.goto('http://localhost:8081', { waitUntil: 'networkidle' })
+}
+```
+
+- `page` is a https://playwright.dev/docs/api/class-page

@@ -1,6 +1,6 @@
 {
   "name": "e2edce",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "end-to-end dce",
   "type": "module",
   "bin": {
@@ -14,10 +14,12 @@
   "author": "ycw (https://github.com/ycw)",
   "license": "MIT",
   "dependencies": {
+    "@babel/core": "^7.18.5",
     "@babel/generator": "^7.18.2",
     "@babel/parser": "^7.18.4",
     "@babel/traverse": "^7.18.2",
     "@babel/types": "^7.18.4",
+    "@rollup/plugin-babel": "^5.3.1",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@web/dev-server": "^0.1.31",
     "playwright": "^1.22.2",
