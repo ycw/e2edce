@@ -71,7 +71,7 @@ export default async (test, headless) => {
       } else if ( // arrow fn 
         fn_source.startsWith('(') // `(a)=>{}`
         || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source) // `a=>{}`
-      ) { 
+      ) {
         new_source.push(`()=>${fn_block}`)
       } else { // method
         new_source.push(`${fn_name}()${fn_block}`)
@@ -95,21 +95,22 @@ export default async (test, headless) => {
 function get_visitor(tag) {
 
   const is_tagged_fn = (body) =>
-    body.body.length === 0 &&
-    body.innerComments?.length === 1 &&
-    body.innerComments[0].type === 'CommentBlock' &&
-    body.innerComments[0].value.trim().startsWith(tag)
+    body.body?.length === 0
+    && body.innerComments?.length === 1
+    && body.innerComments[0].type === 'CommentBlock'
+    && body.innerComments[0].value.trim().startsWith(tag)
 
-  return {
+  /** @type import('@babel/traverse').Visitor */
+  const visitor = {
     ClassMethod(path) {
       if (is_tagged_fn(path.node.body)) {
-        return path.remove()
+        path.remove()
       }
     },
 
     ObjectMethod(path) {
       if (is_tagged_fn(path.node.body)) {
-        return path.remove()
+        path.remove()
       }
     },
 
@@ -121,8 +122,10 @@ function get_visitor(tag) {
         )
         && is_tagged_fn(path.node.value.body)
       ) {
-        return path.remove()
+        path.remove()
       }
     }
   }
+
+  return visitor
 }
