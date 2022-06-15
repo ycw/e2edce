@@ -62,7 +62,7 @@ function size_of(s) {
   } else if (s < 1024 * 1024) {
     size = Math.round(s / 1024) + 'Kb'
   } else {
-    size = Math.round(s / 1024 * 1024) + 'Mb'
+    size = Math.round(s / 1024 / 1024) + 'Mb'
   }
 
   return { size }
