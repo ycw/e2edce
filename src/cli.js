@@ -1,50 +1,55 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises'
-import get_config from './config.js'
+import get_configs from './config.js'
 import serve from './server.js'
 import bundle from './rollup.js'
 import cover from './blanket.js'
 import uglify from './ugly.js'
 import gzip from './gzip.js'
 
-const [config, test_fn] = await get_config(process.argv[2])
+const configs = await get_configs(process.argv[2])
 
-console.log('Config', config)
+for (const [config, test_fn] of configs) {
 
-const stop_server = await serve(config.port, process.cwd())
+  console.log('Config', config)
 
-try {
+  const stop_server = await serve(config.port, process.cwd())
 
-  const bundled_code = await bundle(config.input)
+  try {
 
-  await fs.writeFile(config.output, bundled_code)
+    const bundled_code = await bundle(config.input)
 
-  const dce_code = await cover(test_fn, config.headless)
+    await fs.writeFile(config.output, bundled_code)
 
-  await fs.writeFile(config.output, dce_code)
+    const dce_code = await cover(test_fn, config.headless)
 
-  const ugly_code = await uglify({
-    input: config.output,
-    compress: config.compress,
-    mangle: config.mangle,
-    minify: config.minify
-  })
+    await fs.writeFile(config.output, dce_code)
 
-  await fs.writeFile(config.output, ugly_code)
+    const ugly_code = await uglify({
+      input: config.output,
+      compress: config.compress,
+      mangle: config.mangle,
+      minify: config.minify
+    })
 
-  const gz_size = await gzip(config.output, config.output + '.gz')
+    await fs.writeFile(config.output, ugly_code)
 
-  console.table({
-    bundle: size_of(bundled_code.length),
-    dce: size_of(dce_code.length),
-    build: size_of(ugly_code.length),
-    gzip: size_of(gz_size)
-  })
+    const gz_size = await gzip(config.output, config.output + '.gz')
 
-} finally {
+    console.table({
+      bundle: size_of(bundled_code.length),
+      dce: size_of(dce_code.length),
+      build: size_of(ugly_code.length),
+      gzip: size_of(gz_size)
+    })
 
-  await stop_server()
+    console.log('\n')
+
+  } finally {
+
+    await stop_server()
+  }
 }
 
 
