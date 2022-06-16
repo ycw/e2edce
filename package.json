@@ -1,7 +1,7 @@
 {
   "name": "e2edce",
-  "version": "0.1.2",
-  "description": "end-to-end dce",
+  "version": "0.2.0",
+  "description": "end-to-end deadcode elimination",
   "type": "module",
   "bin": {
     "e2edce": "src/cli.js"

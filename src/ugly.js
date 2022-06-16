@@ -16,7 +16,8 @@ export default async ({
         compress,
         mangle,
         format: {
-          beautify: !minify
+          beautify: !minify,
+          comments: false
         }
       })
     ]

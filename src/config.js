@@ -56,11 +56,24 @@ export default async (config_file_path) => {
       process.exit(1)
     }
 
-    const test_fn = (
+    let test_obj = (
       await import(url.pathToFileURL(user_config.test))
     ).default
 
-    configs.push([config, test_fn])
+    if (typeof test_obj === 'function') {
+      test_obj = { test: test_obj }
+    }
+
+    if (typeof test_obj.test !== 'function') {
+      console.error('.test is required to be fn')
+      process.exit(1)
+    }
+
+    if (typeof test_obj.inject !== 'function') {
+      test_obj.inject = () => { }
+    }
+
+    configs.push([config, test_obj])
   }
 
   return configs

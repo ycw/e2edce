@@ -49,37 +49,77 @@ export default async (test, headless) => {
       new_source.push(source.substring(at, startOffset))
       at = endOffset
 
-      const fn_source = source?.substring(startOffset, endOffset)
+      const fn_source = source.substring(startOffset, endOffset)
       const fn_name = (
         /[^0-9a-zA-Z$_]/.test(functionName)
         || !functionName
       ) ? '_e2edce_' + (stub_fn_idx++)
         : functionName
 
-      if (fn_source.startsWith('function')) {
-        new_source.push(`function ${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('async function')) { // async f and gf
-        new_source.push(`async function ${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('async *')) { // async gf (method)
-        new_source.push(`async *${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('*')) { // gf (method)
-        new_source.push(`*${fn_name}()${fn_block}`)
-      } else if (fn_source.startsWith('constructor')) { // class ctor
-        new_source.push(`constructor()${fn_block}`)
-      } else if (fn_source.startsWith('set ')) { // setter
-        new_source.push(`${fn_name}(v)${fn_block}`)
-      } else if ( // arrow fn 
-        fn_source.startsWith('(') // `(a)=>{}`
-        || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source) // `a=>{}`
+      // # Keep fn body for these
+      //
+      // - function(){}
+      // - function f(){}
+      // - async function(){}
+      // - async function f(){}
+      // - async function*(){}
+      // - async function* f(){}
+      // - ()=>{}
+      // - ()=>0
+      // - a=>{}
+      // - a=>0
+      // - async()=>{}
+      // - async()=>0
+      // - async a=>{}
+      // - async a=>0
+      //
+      // # Replace fn body for these
+      //
+      // class K {            | const o = {
+      //   f(){}              |   f(){},
+      //   *gf(){}            |   *gf(){},
+      //   [c](){}            |   [c](){},
+      //   *[cgf](){}         |   *[cgf](){},
+      //   get g(){}          |   get g(){},
+      //   set s(v){}         |   set s(v){},
+      //   async af(){}       |   async af(){},
+      //   async [caf](){}    |   async [ac](){},
+      //   async *[cagf](){}  |   async *[cagf](){}
+      // }                    | }
+
+      if (
+        /^(async\s*?)*function\s*\*?/.test(fn_source)
+        || fn_source?.startsWith('(')
+        || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source)
+        || /^async\s*\(/.test(fn_source)
+        || /^async\s*[0-9a-zA-Z$_]+\s*=>/.test(fn_source)
       ) {
-        new_source.push(`()=>${fn_block}`)
-      } else { // method
-        new_source.push(`${fn_name}()${fn_block}`)
+        new_source.push(fn_source)
+      } else {
+        if (/^(async\s*)?(\*\s*)?[0-9a-zA-Z$_]+\s*\(/.test(fn_source)) {
+          new_source.push(`${fn_name}()${fn_block}`)
+          continue
+        }
+        if (/^(async\s*)?(\*\s*)?\[/.test(fn_source)) {
+          new_source.push(`[${fn_name}]()${fn_block}`)
+          continue
+        }
+        if (/^get\s+/.test(fn_source)) {
+          new_source.push(`get ${fn_name}()${fn_block}`)
+          continue
+        }
+        if (/^set\s+/.test(fn_source)) {
+          new_source.push(`set ${fn_name}(v)${fn_block}`)
+          continue
+        }
+
+        console.log('unknown fn pattern', fn_source)
+        new_source.push(fn_source)
       }
     }
   }
 
-  new_source.push(source?.substring(at))
+  new_source.push(source.substring(at))
 
   const tagged_code = new_source.join('')
 
@@ -95,10 +135,7 @@ export default async (test, headless) => {
 function get_visitor(tag) {
 
   const is_tagged_fn = (body) =>
-    body.body?.length === 0
-    && body.innerComments?.length === 1
-    && body.innerComments[0].type === 'CommentBlock'
-    && body.innerComments[0].value.trim().startsWith(tag)
+    body.innerComments?.[0].value.trim().startsWith(tag)
 
   /** @type import('@babel/traverse').Visitor */
   const visitor = {
@@ -122,6 +159,12 @@ function get_visitor(tag) {
         )
         && is_tagged_fn(path.node.value.body)
       ) {
+        path.remove()
+      }
+    },
+
+    CallExpression(path) {
+      if (path.node.callee.id?.name === '_e2edce_inject_') {
         path.remove()
       }
     }
