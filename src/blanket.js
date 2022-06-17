@@ -88,7 +88,7 @@ export default async (test, headless) => {
       // }                    | }
 
       if (
-        /^(async\s*?)*function\s*\*?/.test(fn_source)
+        /^(async\s+)?function\s*\*?/.test(fn_source)
         || fn_source?.startsWith('(')
         || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source)
         || /^async\s*\(/.test(fn_source)
