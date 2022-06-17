@@ -15,9 +15,9 @@ export default async (config_file_path) => {
     compress: true,
     mangle: true,
     minify: true,
+    debug: false,
     headless: true,
     port: 8081,
-    debug: false
   }
 
   let user_configs = (
@@ -71,6 +71,12 @@ export default async (config_file_path) => {
 
     if (typeof test_obj.inject !== 'function') {
       test_obj.inject = () => { }
+    }
+
+    if (config.debug) {
+      config.compress = false
+      config.mangle = false
+      config.minify = false
     }
 
     configs.push([config, test_obj])

@@ -39,24 +39,31 @@ Finally, run `npm run build` to build artifacts
 
 ```js
 export default {
+
   // --- required ---
+  
   input: 'src/index.js', // path to entry
   output: 'index.build.js', // path to output file
   test: 'e2e/test.js', // path to test file 
 
   // --- optional ---
-  compress: true, // compress? (bool | object)
-  mangle: true, // mangle? (bool | object)
+
+  compress: true, // compress? 
+  mangle: true, // mangle?
   minify: true, // trim whitespaces?
+
+  debug: false, // create a debug build?
+
   port: 8081, // dev server port
   headless: true, // run tests in headless browser?
-  debug: false // build artifacts for dbg?
 }
 ```
 
 - `compress` is https://github.com/terser/terser#compress-options
 - `mangle` is https://github.com/terser/terser#mangle-options
-- `debug` if true, creates extra artifacts alongside output file
+- `debug` if true, all uncovered fns will `throw` at runtime instead of removal at
+  compile time; `compress`, `mangle` and `minify` are forced to be `false`.
+
 
 
 ## Test File 
@@ -83,7 +90,7 @@ export default {
 ```
 
 - `page` is a https://playwright.dev/docs/api/class-page
-- `inject`, a fn to be run at the end of input module, `src/index.js`,
+- `inject`, a fn to be run at the end of input file.
 
    We could add mocks inside `inject()` to directly cover certain code branches 
    instead of writing complex e2e tests inside `test()`

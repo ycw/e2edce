@@ -7,7 +7,7 @@ import * as t from '@babel/types'
 const traverse = _traverse.default
 const generate = _generate.default
 
-export default async (test, headless) => {
+export default async (test, headless, debug) => {
 
   const browser = await chromium.launch({ headless })
   const page = await browser.newPage()
@@ -33,7 +33,6 @@ export default async (test, headless) => {
 
   const source = entry.source
   const tag = '@e2edce'
-  const fn_block = `{/*${tag}*/}`
 
   let at = 0
   let new_source = []
@@ -50,72 +49,8 @@ export default async (test, headless) => {
       at = endOffset
 
       const fn_source = source.substring(startOffset, endOffset)
-      const fn_name = (
-        /[^0-9a-zA-Z$_]/.test(functionName)
-        || !functionName
-      ) ? '_e2edce_' + (stub_fn_idx++)
-        : functionName
 
-      // # Keep fn body for these
-      //
-      // - function(){}
-      // - function f(){}
-      // - async function(){}
-      // - async function f(){}
-      // - async function*(){}
-      // - async function* f(){}
-      // - ()=>{}
-      // - ()=>0
-      // - a=>{}
-      // - a=>0
-      // - async()=>{}
-      // - async()=>0
-      // - async a=>{}
-      // - async a=>0
-      //
-      // # Replace fn body for these
-      //
-      // class K {            | const o = {
-      //   f(){}              |   f(){},
-      //   *gf(){}            |   *gf(){},
-      //   [c](){}            |   [c](){},
-      //   *[cgf](){}         |   *[cgf](){},
-      //   get g(){}          |   get g(){},
-      //   set s(v){}         |   set s(v){},
-      //   async af(){}       |   async af(){},
-      //   async [caf](){}    |   async [ac](){},
-      //   async *[cagf](){}  |   async *[cagf](){}
-      // }                    | }
-
-      if (
-        /^(async\s+)?function\s*\*?/.test(fn_source)
-        || fn_source?.startsWith('(')
-        || /^[0-9a-zA-Z$_]+\s*=>/.test(fn_source)
-        || /^async\s*\(/.test(fn_source)
-        || /^async\s*[0-9a-zA-Z$_]+\s*=>/.test(fn_source)
-      ) {
-        new_source.push(fn_source)
-      } else {
-        if (/^(async\s*)?(\*\s*)?[0-9a-zA-Z$_]+\s*\(/.test(fn_source)) {
-          new_source.push(`${fn_name}()${fn_block}`)
-          continue
-        }
-        if (/^(async\s*)?(\*\s*)?\[/.test(fn_source)) {
-          new_source.push(`[${fn_name}]()${fn_block}`)
-          continue
-        }
-        if (/^get\s+/.test(fn_source)) {
-          new_source.push(`get ${fn_name}()${fn_block}`)
-          continue
-        }
-        if (/^set\s+/.test(fn_source)) {
-          new_source.push(`set ${fn_name}(v)${fn_block}`)
-          continue
-        }
-
-        console.log('unknown fn pattern', fn_source)
-        new_source.push(fn_source)
-      }
+      new_source.push(`/*${tag} ${functionName}*/${fn_source}`) // leading comment
     }
   }
 
@@ -125,29 +60,60 @@ export default async (test, headless) => {
 
   const ast = parser.parse(tagged_code, { sourceType: 'module' })
 
-  traverse(ast, get_visitor(tag))
+  traverse(ast, get_visitor(tag, debug))
 
   return generate(ast, {}, tagged_code).code
 }
 
 
 
-function get_visitor(tag) {
+function get_visitor(tag, debug) {
 
-  const is_tagged_fn = (body) =>
-    body.innerComments?.[0].value.trim().startsWith(tag)
+  const dbg_fn_block = t.blockStatement([
+    t.throwStatement(
+      t.stringLiteral('@e2edce: uncovered')
+    )
+  ])
 
   /** @type import('@babel/traverse').Visitor */
   const visitor = {
     ClassMethod(path) {
-      if (is_tagged_fn(path.node.body)) {
-        path.remove()
+      if (path.node.leadingComments?.at(-1)?.value.trim().startsWith(tag)) {
+        if (debug) {
+          t.removeComments(path.node)
+          path.replaceWith(
+            t.classMethod(
+              path.node.kind,
+              path.node.key,
+              path.node.params,
+              dbg_fn_block,
+              path.node.computed,
+              path.node.static,
+              path.node.generator,
+              path.node.async
+            )
+          )
+        } else {
+          path.replaceWith(t.emptyStatement())
+        }
       }
     },
 
     ObjectMethod(path) {
-      if (is_tagged_fn(path.node.body)) {
-        path.remove()
+      if (path.node.leadingComments?.at(-1)?.value.trim().startsWith(tag)) {
+        if (debug) {
+          t.removeComments(path.node)
+          path.replaceWith(
+            t.objectMethod(
+              path.node.kind,
+              path.node.key,
+              path.node.params,
+              dbg_fn_block
+            )
+          )
+        } else {
+          path.remove()
+        }
       }
     },
 
@@ -157,15 +123,65 @@ function get_visitor(tag) {
           t.isFunctionExpression(path.node.value)
           || t.isArrowFunctionExpression(path.node.value)
         )
-        && is_tagged_fn(path.node.value.body)
+        && path.node.value.leadingComments?.at(-1)?.value.trim().startsWith(tag)
       ) {
-        path.remove()
+        if (debug) {
+          t.removeComments(path.node)
+          path.replaceWith(
+            t.objectProperty(
+              path.node.key,
+              t.isFunctionExpression(path.node.value)
+                ? t.functionExpression(
+                  path.node.value.id,
+                  path.node.value.params,
+                  dbg_fn_block,
+                  path.node.value.generator,
+                  path.node.value.async
+                )
+                : t.arrowFunctionExpression(
+                  path.node.value.params,
+                  dbg_fn_block,
+                  path.node.value.async
+                )
+            )
+          )
+        } else {
+          path.remove()
+        }
       }
     },
 
     CallExpression(path) {
       if (path.node.callee.id?.name === '_e2edce_inject_') {
         path.remove()
+      }
+    },
+
+    FunctionDeclaration(path) {
+      if (path.node.leadingComments?.at(-1)?.value.trim().startsWith(tag)) {
+        if (debug) {
+          t.removeComments(path.node)
+          path.replaceWith(
+            t.functionDeclaration(
+              path.node.id,
+              path.node.params,
+              dbg_fn_block,
+              path.node.generator,
+              path.node.async
+            )
+          )
+        } else {
+          t.removeComments(path.node)
+          path.replaceWith(
+            t.functionDeclaration(
+              path.node.id,
+              path.node.params,
+              t.blockStatement([]),
+              path.node.generator,
+              path.node.async
+            )
+          )
+        }
       }
     }
   }
