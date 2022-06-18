@@ -31,12 +31,10 @@ export default async (test, headless, debug) => {
   const entry = entries[0]
   const uncov_fns = entry.functions.filter(f => !f.isBlockCoverage)
 
-  const source = entry.source
   const tag = '@e2edce'
+  const new_source = []
 
   let at = 0
-  let new_source = []
-  let stub_fn_idx = 0
 
   for (const { functionName, ranges } of uncov_fns) {
     for (const { startOffset, endOffset, count } of ranges) {
@@ -45,16 +43,16 @@ export default async (test, headless, debug) => {
         continue
       }
 
-      new_source.push(source.substring(at, startOffset))
+      new_source.push(entry.source.substring(at, startOffset))
       at = endOffset
 
-      const fn_source = source.substring(startOffset, endOffset)
+      const fn_source = entry.source.substring(startOffset, endOffset)
 
       new_source.push(`/*${tag} ${functionName}*/${fn_source}`) // leading comment
     }
   }
 
-  new_source.push(source.substring(at))
+  new_source.push(entry.source.substring(at))
 
   const tagged_code = new_source.join('')
 
