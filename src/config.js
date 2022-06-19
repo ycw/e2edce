@@ -20,44 +20,48 @@ export default async (config_file_path) => {
     port: 8081,
   }
 
-  let user_configs = (
+  const default_global_config = {
+    configs: undefined, // required
+    setup: undefined,  // optional
+    resolve: undefined, // optional
+    teardown: undefined // optional
+  }
+
+  const global_config = (
     await import(url.pathToFileURL(config_file_path))
   ).default
 
-  if (!Array.isArray(user_configs)) {
-    user_configs = [user_configs]
-  }
+  Object.keys(global_config)
+    .filter(k => !Object.hasOwn(default_global_config, k))
+    .forEach(k => console.warn('unknown global config field:', k))
 
-  const configs = []
+  const computed_configs = []
 
-  for (const user_config of user_configs) {
+  for (const config of global_config.configs) {
 
-    const unknown_fields = Object.keys(user_config)
+    Object.keys(config)
       .filter(k => !Object.hasOwn(default_config, k))
+      .forEach(k => console.warn('Unknown config field', unknown_fields))
 
-    if (unknown_fields.length) {
-      console.warn('Unknown fields', unknown_fields)
-    }
+    const computed_config = Object.assign({}, default_config, config)
 
-    const config = Object.assign({}, default_config, user_config)
-
-    if (!config.input) {
+    if (!computed_config.input) {
       console.error('.input is required in config file')
       process.exit(1)
     }
 
-    if (!config.output) {
+    if (!computed_config.output) {
       console.error('.output is required in config file')
       process.exit(1)
     }
 
-    if (!config.test) {
+    if (!computed_config.test) {
       console.error('.test is required in config file')
       process.exit(1)
     }
 
     let test_obj = (
-      await import(url.pathToFileURL(user_config.test))
+      await import(url.pathToFileURL(computed_config.test))
     ).default
 
     if (typeof test_obj === 'function') {
@@ -73,14 +77,19 @@ export default async (config_file_path) => {
       test_obj.inject = () => { }
     }
 
-    if (config.debug) {
-      config.compress = false
-      config.mangle = false
-      config.minify = false
+    if (computed_config.debug) {
+      computed_config.compress = false
+      computed_config.mangle = false
+      computed_config.minify = false
     }
 
-    configs.push([config, test_obj])
+    computed_configs.push([computed_config, test_obj])
   }
 
-  return configs
+  return { 
+    setup: global_config.setup, 
+    teardown: global_config.teardown,
+    resolve: global_config.resolve,
+    configs: computed_configs
+  }
 }

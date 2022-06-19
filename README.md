@@ -39,31 +39,40 @@ Finally, run `npm run build` to build artifacts
 
 ```js
 export default {
-
   // --- required ---
-  
-  input: 'src/index.js', // path to entry
-  output: 'index.build.js', // path to output file
-  test: 'e2e/test.js', // path to test file 
-
+  configs: [ // array of configs
+    {
+      // --- required ---
+      input: 'src/index.js', // path to entry
+      output: 'index.build.js', // path to output file
+      test: 'e2e/test.js', // path to test file 
+      // --- optional ---
+      compress: true, // compress? 
+      mangle: true, // mangle?
+      minify: true, // trim whitespaces?
+      debug: false, // create a debug build?
+      port: 8081, // dev server port
+      headless: true, // run tests in headless browser?
+    }
+  ],
   // --- optional ---
-
-  compress: true, // compress? 
-  mangle: true, // mangle?
-  minify: true, // trim whitespaces?
-
-  debug: false, // create a debug build?
-
-  port: 8081, // dev server port
-  headless: true, // run tests in headless browser?
+  setup: async() => {}, // run once before processing
+  teardown: async() => {}, // run once after processing
+  resolve: async() => {}, // custom module resolve
 }
 ```
 
 - `compress` is https://github.com/terser/terser#compress-options
+
 - `mangle` is https://github.com/terser/terser#mangle-options
+
 - `debug` if true, all uncovered fns will `throw` at runtime instead of removal at
   compile time; `compress`, `mangle` and `minify` are forced to be `false`.
 
+- `resolve` is https://rollupjs.org/guide/en/#resolveid
+
+  We could generate tmp modules (in `setup`) for module replacement (in `resolve`)
+  and finally remove those tmp modules (in `teardown`)
 
 
 ## Test File 
@@ -81,15 +90,17 @@ export default async (page) => {
 
 ```js
 export default {
-  test: async () => { // required
+  // --- required ---
+  test: async () => {
     await page.goto('http://localhost:8081', { waitUntil: 'networkidle' })
-    // ...
   },
-  inject: () => {..} // optional
+  // --- optional ---
+  inject: () => {..}
 }
 ```
 
 - `page` is a https://playwright.dev/docs/api/class-page
+
 - `inject`, a fn to be run at the end of input file.
 
    We could add mocks inside `inject()` to directly cover certain code branches 

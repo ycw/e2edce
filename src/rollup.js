@@ -1,10 +1,9 @@
 import { rollup } from 'rollup'
 import node_resolve from '@rollup/plugin-node-resolve'
-import { babel } from '@rollup/plugin-babel'
-import * as t from '@babel/types'
 import fs from 'node:fs/promises'
+import path from 'node:path'
 
-export default async (input_path, output_path, inject_fn) => {
+export default async (input_path, output_path, inject_fn, resolve_fn) => {
 
   const input_source = await fs.readFile(input_path)
 
@@ -15,42 +14,30 @@ export default async (input_path, output_path, inject_fn) => {
     })();
   `
 
-  await fs.writeFile(output_path, tampered_source)
+  const tmp_file_path = input_path + '.e2edce.tampered.js'
+
+  await fs.writeFile(tmp_file_path, tampered_source)
+
+  const plugins = []
+
+  if (resolve_fn) { 
+    plugins.push({
+      name: '',
+      resolveId: resolve_fn
+    })
+  }
+
+  plugins.push(node_resolve())
 
   const bundle = await rollup({
-    input: output_path,
-    plugins: [
-      babel({
-        babelHelpers: 'bundled',
-        plugins: [
-          rewrite_source()
-        ]
-      }),
-      node_resolve()
-    ]
+    input: tmp_file_path,
+    plugins
   })
+
+  await fs.unlink(tmp_file_path)
 
   const { output } = await bundle.generate({})
   await bundle.close()
 
   return output[0].code
-}
-
-
-
-function rewrite_source() {
-  return {
-    visitor: {
-      ImportDeclaration(path) {
-        if (path.node.source.value === 'three') {
-          path.replaceWith(
-            t.importDeclaration(
-              path.node.specifiers,
-              t.stringLiteral('three/src/Three')
-            )
-          )
-        }
-      }
-    }
-  }
 }

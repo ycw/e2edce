@@ -8,7 +8,11 @@ import cover from './blanket.js'
 import uglify from './ugly.js'
 import gzip from './gzip.js'
 
-const configs = await get_configs(process.argv[2])
+const { setup, teardown, resolve, configs } = await get_configs(process.argv[2])
+
+if (setup) {
+  await setup()
+}
 
 for (const [config, test_obj] of configs) {
 
@@ -18,7 +22,7 @@ for (const [config, test_obj] of configs) {
 
   try {
 
-    const bundled_code = await bundle(config.input, config.output, test_obj.inject)
+    const bundled_code = await bundle(config.input, config.output, test_obj.inject, resolve)
 
     await fs.writeFile(config.output, bundled_code)
 
@@ -52,6 +56,9 @@ for (const [config, test_obj] of configs) {
   }
 }
 
+if (teardown) {
+  await teardown()
+}
 
 
 function size_of(s) {
