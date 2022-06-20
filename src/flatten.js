@@ -1,26 +1,30 @@
 import { rollup } from 'rollup'
 import node_resolve from '@rollup/plugin-node-resolve'
 import fs from 'node:fs/promises'
-import path from 'node:path'
 
-export default async (input_path, output_path, inject_fn, resolve_fn) => {
+export default async (input_path, inject_fn, resolve_fn) => {
 
   const input_source = await fs.readFile(input_path)
 
-  const tampered_source = `
-    ${input_source}
-    ;(function _e2edce_inject_() {
+  const inject_code = `;
+    function _e2edce_inject_() {
       (${inject_fn.toString()})()
-    })();
+    }
+    /*#__NOINLINE__*/_e2edce_inject_();
   `
 
-  const tmp_file_path = input_path + '.e2edce.tampered.js'
+  const tampered_source = `
+    ${input_source}
+    ${inject_code}  
+  `
+
+  const tmp_file_path = input_path + '.e2edce.flatten.js'
 
   await fs.writeFile(tmp_file_path, tampered_source)
 
   const plugins = []
 
-  if (resolve_fn) { 
+  if (resolve_fn) {
     plugins.push({
       name: '',
       resolveId: resolve_fn
@@ -31,7 +35,7 @@ export default async (input_path, output_path, inject_fn, resolve_fn) => {
 
   const bundle = await rollup({
     input: tmp_file_path,
-    plugins
+    plugins,
   })
 
   await fs.unlink(tmp_file_path)
@@ -39,5 +43,5 @@ export default async (input_path, output_path, inject_fn, resolve_fn) => {
   const { output } = await bundle.generate({})
   await bundle.close()
 
-  return output[0].code
+  return [output[0].code, inject_code]
 }

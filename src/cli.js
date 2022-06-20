@@ -3,9 +3,9 @@
 import fs from 'node:fs/promises'
 import get_configs from './config.js'
 import serve from './server.js'
-import bundle from './rollup.js'
-import cover from './blanket.js'
-import uglify from './ugly.js'
+import flatten from './flatten.js'
+import blanket from './blanket.js'
+import minify from './minify.js'
 import gzip from './gzip.js'
 
 const { setup, teardown, resolve, configs } = await get_configs(process.argv[2])
@@ -22,32 +22,40 @@ for (const [config, test_obj] of configs) {
 
   try {
 
-    const bundled_code = await bundle(config.input, config.output, test_obj.inject, resolve)
+    const [flat_code, inject_code] = await flatten(
+      config.input,
+      test_obj.inject,
+      resolve
+    )
 
-    await fs.writeFile(config.output, bundled_code)
+    await fs.writeFile(config.output, flat_code)
 
-    const dce_code = await cover(test_obj.test, config.headless, config.debug)
+    const blanket_code = await blanket(
+      test_obj.test,
+      config.headless,
+      config.debug
+    )
 
-    await fs.writeFile(config.output, dce_code)
+    const minified_code = await minify(
+      blanket_code,
+      config.compress,
+      config.mangle,
+      config.beautify
+    )
 
-    const ugly_code = await uglify({
-      input: config.output,
-      compress: config.compress,
-      mangle: config.mangle,
-      minify: config.minify
-    })
+    const sz_gzipped = await gzip(
+      minified_code,
+      config.output + '.gz'
+    )
 
-    await fs.writeFile(config.output, ugly_code)
+    const report = gen_report([
+      { id: 'flat', sz: flat_code.length - inject_code.length },
+      { id: 'dce', sz: blanket_code.length - inject_code.length },
+      { id: 'min', sz: minified_code.length },
+      { id: 'min+gz', sz: sz_gzipped }
+    ])
 
-    const gz_size = await gzip(config.output, config.output + '.gz')
-
-    console.table({
-      bundle: size_of(bundled_code.length),
-      dce: size_of(dce_code.length),
-      build: size_of(ugly_code.length),
-      gzip: size_of(gz_size)
-    })
-
+    console.table(report)
     console.log('\n')
 
   } finally {
@@ -61,11 +69,18 @@ if (teardown) {
 }
 
 
-function size_of(s) {
-  let size = '0b'
+
+function gen_report(records) {
+  const report = {}
+  records.forEach(({ id, sz }) => report[id] = fmt_size(sz))
+  return report
+}
+
+function fmt_size(s) {
+  let size
 
   if (s < 1024) {
-    size = s + 'b'
+    size = String(s) + 'b'
   } else if (s < 1024 * 1024) {
     size = (s / 1024).toFixed(2) + 'Kb'
   } else {

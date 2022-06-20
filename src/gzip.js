@@ -1,14 +1,14 @@
-import { createReadStream, createWriteStream } from 'node:fs'
-import { pipeline } from 'node:stream'
+import { createWriteStream } from 'node:fs'
+import { pipeline, Readable } from 'node:stream'
 import { promisify } from 'node:util'
-import zlib from 'node:zlib'
+import { createGzip } from 'node:zlib'
 import { stat } from 'node:fs/promises'
 
-export default async (input_path, output_path) => {
-  
+export default async (input_code, output_path) => {
+
   await promisify(pipeline)(
-    createReadStream(input_path), 
-    zlib.createGzip(), 
+    Readable.from(input_code),
+    createGzip(),
     createWriteStream(output_path)
   )
 

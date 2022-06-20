@@ -14,7 +14,7 @@ export default async (config_file_path) => {
     test: undefined,
     compress: true,
     mangle: true,
-    minify: true,
+    beautify: false,
     debug: false,
     headless: true,
     port: 8081,
@@ -33,30 +33,39 @@ export default async (config_file_path) => {
 
   Object.keys(global_config)
     .filter(k => !Object.hasOwn(default_global_config, k))
-    .forEach(k => console.warn('unknown global config field:', k))
+    .forEach(k => console.warn(`Ignored unknown global config field "${k}"`))
 
   const computed_configs = []
 
   for (const config of global_config.configs) {
 
-    Object.keys(config)
-      .filter(k => !Object.hasOwn(default_config, k))
-      .forEach(k => console.warn('Unknown config field', unknown_fields))
+    const computed_config = structuredClone(
+      Object.assign(
+        {},
+        default_config,
+        config
+      )
+    )
 
-    const computed_config = Object.assign({}, default_config, config)
+    Object.keys(computed_config)
+      .filter(k => !Object.hasOwn(default_config, k))
+      .forEach(k => {
+        delete computed_config[k]
+        console.warn(`Deleted unknown field "${k}" from config`)
+      })
 
     if (!computed_config.input) {
-      console.error('.input is required in config file')
+      console.error('Missing config.input')
       process.exit(1)
     }
 
     if (!computed_config.output) {
-      console.error('.output is required in config file')
+      console.error('Missing config.output')
       process.exit(1)
     }
 
-    if (!computed_config.test) {
-      console.error('.test is required in config file')
+    if (!computed_config.test) { // path to test file
+      console.error('Missing config.test')
       process.exit(1)
     }
 
@@ -69,7 +78,7 @@ export default async (config_file_path) => {
     }
 
     if (typeof test_obj.test !== 'function') {
-      console.error('.test is required to be fn')
+      console.error('Missing test fn in test file')
       process.exit(1)
     }
 
@@ -80,14 +89,14 @@ export default async (config_file_path) => {
     if (computed_config.debug) {
       computed_config.compress = false
       computed_config.mangle = false
-      computed_config.minify = false
+      computed_config.beautify = true
     }
 
     computed_configs.push([computed_config, test_obj])
   }
 
-  return { 
-    setup: global_config.setup, 
+  return {
+    setup: global_config.setup,
     teardown: global_config.teardown,
     resolve: global_config.resolve,
     configs: computed_configs

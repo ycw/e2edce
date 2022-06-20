@@ -11,7 +11,7 @@ export default async (test, headless, debug) => {
 
   const browser = await chromium.launch({ headless })
   const page = await browser.newPage()
-  await page.coverage.startJSCoverage({ resetOnNavigation: false })
+  await page.coverage.startJSCoverage({ resetOnNavigation: true })
 
   try {
     await test(page)
@@ -69,7 +69,7 @@ function get_visitor(tag, debug) {
 
   const dbg_fn_block = t.blockStatement([
     t.throwStatement(
-      t.stringLiteral('@e2edce: uncovered')
+      t.stringLiteral('@e2edce: uncoverage')
     )
   ])
 
@@ -146,12 +146,6 @@ function get_visitor(tag, debug) {
         } else {
           path.remove()
         }
-      }
-    },
-
-    CallExpression(path) {
-      if (path.node.callee.id?.name === '_e2edce_inject_') {
-        path.remove()
       }
     },
 

@@ -47,9 +47,9 @@ export default {
       output: 'index.build.js', // path to output file
       test: 'e2e/test.js', // path to test file 
       // --- optional ---
-      compress: true, // compress? 
-      mangle: true, // mangle?
-      minify: true, // trim whitespaces?
+      compress: true, 
+      mangle: true,
+      beautify: false, // with indentation?
       debug: false, // create a debug build?
       port: 8081, // dev server port
       headless: true, // run tests in headless browser?
@@ -66,8 +66,10 @@ export default {
 
 - `mangle` is https://github.com/terser/terser#mangle-options
 
-- `debug` if true, all uncovered fns will `throw` at runtime instead of removal at
-  compile time; `compress`, `mangle` and `minify` are forced to be `false`.
+- `beautify` is opposite of 'minified' in https://babeljs.io/docs/en/babel-generator
+
+- `debug` if true, uncoverage fns will `throw` at runtime instead of removal at
+  compile time; `compress`, `mangle` and `beautify` are overrided to `false`.
 
 - `resolve` is https://rollupjs.org/guide/en/#resolveid
 
@@ -82,26 +84,25 @@ export default {
 Export a async fn or an object
 
 ```js
-export default async (page) => {
+export default async (page) => { // e2e test
   await page.goto('http://localhost:8081', { waitUntil: 'networkidle' })
-  // ...
 }
 ```
 
 ```js
 export default {
   // --- required ---
-  test: async () => {
+  test: async () => { // e2e test
     await page.goto('http://localhost:8081', { waitUntil: 'networkidle' })
   },
   // --- optional ---
-  inject: () => {..}
+  inject: () => {}
 }
 ```
 
 - `page` is a https://playwright.dev/docs/api/class-page
 
-- `inject`, a fn to be run at the end of input file.
+- `inject`, a fn to be injected at the end of **input module**
 
    We could add mocks inside `inject()` to directly cover certain code branches 
    instead of writing complex e2e tests inside `test()`
