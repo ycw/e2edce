@@ -4,7 +4,10 @@ export default async (port, rootDir) => {
 
   const server = await startDevServer({
     logStartMessage: false,
-    config: { port, rootDir }
+    config: {
+      port,
+      rootDir
+    }
   })
 
   return server.stop.bind(server)

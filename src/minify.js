@@ -31,7 +31,7 @@ export default async (input_code, compress, mangle, beautify) => {
     }
   })
 
-  // now, rm inject_fn from minified code
+  // now, rm inject_code from minified code
 
   const ast = parser.parse(code, { sourceType: 'module' })
 

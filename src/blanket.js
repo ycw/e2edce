@@ -13,9 +13,20 @@ export default async (test, headless, debug) => {
   const page = await browser.newPage()
   await page.coverage.startJSCoverage({ resetOnNavigation: true })
 
+  page.on('pageerror', (e) => { // not critical
+    console.log('')
+    console.log('Uncaught from page:')
+    console.log(e)
+    console.log('')
+  })
+
   try {
     await test(page)
-  } catch (e) {
+  } catch (e) { // critical (affects coverage)
+    console.log('')
+    console.log('Uncaught from test:')
+    console.log(e)
+    console.log('')
     browser.close()
     throw e
   }

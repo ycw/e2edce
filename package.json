@@ -1,6 +1,6 @@
 {
   "name": "e2edce",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "end-to-end deadcode elimination",
   "type": "module",
   "bin": {

@@ -58,7 +58,7 @@ export default {
   // --- optional ---
   setup: async() => {}, // run once before processing
   teardown: async() => {}, // run once after processing
-  resolve: async() => {}, // custom module resolve
+  resolve: async() => {}, // custom module resolution
 }
 ```
 
@@ -66,15 +66,16 @@ export default {
 
 - `mangle` is https://github.com/terser/terser#mangle-options
 
-- `beautify` is opposite of 'minified' in https://babeljs.io/docs/en/babel-generator
+- `beautify` is the opposite of 'minified' in https://babeljs.io/docs/en/babel-generator
 
 - `debug` if true, uncoverage fns will `throw` at runtime instead of removal at
-  compile time; `compress`, `mangle` and `beautify` are overrided to `false`.
+  compile time; `compress`, `mangle` and `beautify` will be overrided.
 
 - `resolve` is https://rollupjs.org/guide/en/#resolveid
 
-  We could generate tmp modules (in `setup`) for module replacement (in `resolve`)
-  and finally remove those tmp modules (in `teardown`)
+  We could generate temporary modules(in `setup`) for module replacement(in `resolve`)
+  and remove those modules(in `teardown`) after processing all builds.
+
 
 
 ## Test File 

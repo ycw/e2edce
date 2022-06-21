@@ -30,11 +30,16 @@ for (const [config, test_obj] of configs) {
 
     await fs.writeFile(config.output, flat_code)
 
-    const blanket_code = await blanket(
-      test_obj.test,
-      config.headless,
-      config.debug
-    )
+    let blanket_code
+    try {
+      blanket_code = await blanket(
+        test_obj.test,
+        config.headless,
+        config.debug
+      )
+    } catch {
+      process.exit(-1)
+    }
 
     const minified_code = await minify(
       blanket_code,
@@ -42,6 +47,8 @@ for (const [config, test_obj] of configs) {
       config.mangle,
       config.beautify
     )
+
+    await fs.writeFile(config.output, minified_code)
 
     const sz_gzipped = await gzip(
       minified_code,
