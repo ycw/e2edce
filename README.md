@@ -53,6 +53,7 @@ export default {
       debug: false, // create a debug build?
       port: 8081, // dev server port
       headless: true, // run tests in headless browser?
+      visitor: undefined, // transform sources 
     }
   ],
   // --- optional ---
@@ -75,6 +76,10 @@ export default {
 
   We could generate temporary modules(in `setup`) for module replacement(in `resolve`)
   and remove those modules(in `teardown`) after processing all builds.
+
+- `visitor` is a [babel visitor](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#visitors)
+
+  This will transform original sources during flattening. 
 
 
 

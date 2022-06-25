@@ -22,10 +22,11 @@ for (const [config, test_obj] of configs) {
 
   try {
 
-    const [flat_code, inject_code] = await flatten(
+    const [flat_code, _inject_code] = await flatten(
       config.input,
       test_obj.inject,
-      resolve
+      resolve,
+      config.visitor
     )
 
     await fs.writeFile(config.output, flat_code)
@@ -56,8 +57,8 @@ for (const [config, test_obj] of configs) {
     )
 
     const report = gen_report([
-      { id: 'flat', sz: flat_code.length - inject_code.length },
-      { id: 'dce', sz: blanket_code.length - inject_code.length },
+      { id: 'flat', sz: flat_code.length },
+      { id: 'dce', sz: blanket_code.length },
       { id: 'min', sz: minified_code.length },
       { id: 'min+gz', sz: sz_gzipped }
     ])

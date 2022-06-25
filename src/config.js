@@ -9,9 +9,12 @@ export default async (config_file_path) => {
   }
 
   const default_config = {
+    // --- required ---
     input: undefined,
     output: undefined,
     test: undefined,
+    // --- optional ---
+    visitor: undefined, // a babel visitor; during flatten code
     compress: true,
     mangle: true,
     beautify: false,
@@ -22,9 +25,9 @@ export default async (config_file_path) => {
 
   const default_global_config = {
     configs: undefined, // required
-    setup: undefined,  // optional
-    resolve: undefined, // optional
-    teardown: undefined // optional
+    setup: undefined,
+    resolve: undefined,
+    teardown: undefined
   }
 
   const global_config = (
@@ -39,13 +42,15 @@ export default async (config_file_path) => {
 
   for (const config of global_config.configs) {
 
-    const computed_config = structuredClone(
-      Object.assign(
-        {},
-        default_config,
-        config
-      )
-    )
+    const computed_config = { ...default_config, ...config } // shallow
+
+    if (typeof computed_config.compress === 'object') {
+      computed_config.compress = { ...computed_config.compress }
+    }
+
+    if (typeof computed_config.mangle === 'object') {
+      computed_config.mangle = { ...computed_config.mangle }
+    }
 
     Object.keys(computed_config)
       .filter(k => !Object.hasOwn(default_config, k))

@@ -1,8 +1,9 @@
 import { rollup } from 'rollup'
 import node_resolve from '@rollup/plugin-node-resolve'
 import fs from 'node:fs/promises'
+import { babel } from '@rollup/plugin-babel'
 
-export default async (input_path, inject_fn, resolve_fn) => {
+export default async (input_path, inject_fn, resolve_fn, visitor) => {
 
   const input_source = await fs.readFile(input_path)
 
@@ -32,6 +33,13 @@ export default async (input_path, inject_fn, resolve_fn) => {
   }
 
   plugins.push(node_resolve())
+
+  if (visitor) {
+    plugins.push(babel({
+      babelHelpers: 'bundled',
+      plugins: [{ visitor }]
+    }))
+  }
 
   const bundle = await rollup({
     input: tmp_file_path,
